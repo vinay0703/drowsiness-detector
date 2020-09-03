@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
-import time
+import os
 import cv2
-import numpy as np
+import time
 import dlib
+import playsound
+import numpy as np
+from gtts import gTTS
+from threading import Thread
 from scipy.spatial import distance
 ###############################################################################
+def speak(text):
+    """converts text to speech by using google text to speech module(gtts)."""
+    tts=gTTS(text=text,slow=False,lang='en')
+    file_name="voice.mp3"
+    tts.save(file_name)
+    playsound.playsound(file_name)
+
+def alarm1(path):
+    """Alarm for drowsy detection."""
+    s=playsound.playsound(path)
+
 def drawcontours(img,lower,upper):
     """To draw contours when called and return array of landmarks of eye point"""
     for n in range(lower,upper+1):
@@ -47,6 +62,8 @@ eye_ear_threshold=0.24  #may vary upon distance and quality of camera
 count=0
 count_threshold=30   #for the frequency of eye closure time and can adjust it
 time.sleep(1.0)
+#speak("Wake up sir")
+alarm_on1=False      #for drowsy alarm
 ###############################################################################
 while True:
     success,img=cap.read()
@@ -78,10 +95,16 @@ while True:
         if eye_ear < eye_ear_threshold:
             count+=1
             if count >= count_threshold:
-                print("Drowsy")
+                if not alarm_on1:
+                    alarm_on1=True
+                    t=Thread(target=alarm1("voice.mp3"),args=("voice.mp3"))
+                    t.deamon=True
+                    t.start()
+                cv2.putText(img,"DROWSINESS ALERT",(10,30),
+                            cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2)
         else:
             count=0
-
+            alarm_on1=False
     cv2.imshow("Cap",img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
