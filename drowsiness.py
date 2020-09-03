@@ -45,6 +45,7 @@ cap.set(10,100)
 eye_ear_threshold=0.24  #may vary upon distance and quality of camera
                         #adjust it by trail error on line
 count=0
+count_threshold=30   #for the frequency of eye closure time and can adjust it
 time.sleep(1.0)
 ###############################################################################
 while True:
@@ -76,7 +77,7 @@ while True:
 
         if eye_ear < eye_ear_threshold:
             count+=1
-            if count >= 30:
+            if count >= count_threshold:
                 print("Drowsy")
         else:
             count=0
