@@ -80,7 +80,7 @@ alarm_on2=False      #for yawn alarm
 ###############################################################################
 while True:
     success,img=cap.read()
-    print(img.shape)
+    #print(img.shape)
     img_gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     faces=facecascade(img_gray)
     for face in faces:
