@@ -68,7 +68,7 @@ cap=cv2.VideoCapture(0)
 cap.set(3,640)
 cap.set(4,480)
 cap.set(10,100)
-eye_ear_threshold=0.24  #may vary upon distance and quality of camera
+eye_ear_threshold=0.30  #may vary upon distance and quality of camera
                         #adjust it by trail error on line
 yawn_threshold=22
 count=0
@@ -115,7 +115,10 @@ while True:
         lip_distance=get_lip_distance(top_lip,bottom_lip)
         #print(lip_distance)    #trail and error method for
                                 #adjusting yawn_threshold
-
+        text1="EAR: "+str(eye_ear)
+        text2="YAWN: "+str(lip_distance)
+        cv2.putText(img,text1,(500,450),cv2.FONT_HERSHEY_SIMPLEX,0.6,(0,0,255),2)
+        cv2.putText(img,text2,(500,480),cv2.FONT_HERSHEY_SIMPLEX,0.6,(0, 0, 255),2)
         if eye_ear < eye_ear_threshold:
             count+=1
             if count >= count_threshold:
@@ -140,11 +143,6 @@ while True:
                             1,(0,0,255),2)
         else:
             alarm_on2=False
-
-    cv2.putText(img,"EAR: {:.2f}".format(eye_ear),(500,450),
-                cv2.FONT_HERSHEY_SIMPLEX,0.6,(0,0,255),2)
-    cv2.putText(img,"YAWN: {:.2f}".format(lip_distance),(500,480),
-                cv2.FONT_HERSHEY_SIMPLEX,0.6,(0, 0, 255),2)
 
     cv2.imshow("Cap",img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
