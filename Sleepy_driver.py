@@ -53,28 +53,39 @@ class Background(FloatLayout):
         self.yawn_threshold = 22
         self.flag=0
         self.modify_threshold=0
-        self.color=(255,0,0)
-        self.val=[]
-        self.plot_canvas=np.ones((512,512,3))*255
 
-    # Update new values in plot
-    def plot(self, val, label = "plot"):
-    	self.val.append(int(val))
-    	while len(self.val) > self.width:
-    		self.val.pop(0)
-
-    	self.show_plot(label)
-
-    # Show plot using opencv imshow
-    def show_plot(self,label):
-    	self.plot_canvas = np.ones((self.height, self.width, 3))*255
-    	cv2.line(self.plot_canvas,(0,int(self.height/2)),(self.width,int(self.height/2)),(0,255,0),1)
-    	for i in range(len(self.val)-1):
-    		cv2.line(self.plot_canvas,(i, int(self.height/2)-self.val[i]),(i+1,int(self.height/2)-self.val[i+1]),self.color,1)
-    	cv2.imshow(label,self.plot_canvas)
-    	cv2.waitKey(10)
 
     def drowsy(self):
+        def show_plot(label):
+            plot_canvas_graph = np.ones((height_graph, width_graph, 3)) * 255
+            cv2.line(plot_canvas_graph,
+                     (0, int(height_graph / 2)),
+                     (width_graph, int(height_graph / 2)), (0, 255, 0), 1)
+            for i in range(len(val_graph) - 1):
+                cv2.line(plot_canvas_graph, (i, int(height_graph / 2) - val_graph[i]),
+                         (i + 1, int(height_graph / 2) - val_graph[i + 1]), color_graph, 1)
+                cv2.putText(plot_canvas_graph, "Plot of eye_ear value", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            for i in range(len(val2_graph)-1):
+                cv2.line(plot_canvas_graph, (i, int(height_graph) - val2_graph[i]),
+                        (i + 1, int(height_graph) - val2_graph[i + 1]), color_graph, 1)
+                cv2.putText(plot_canvas_graph, "Plot of Yawn threshold",
+                            (10,int(height_graph/2)+30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.resize(plot_canvas_graph, (width_graph,height_graph))
+            cv2.imshow(label,plot_canvas_graph)
+            cv2.waitKey(10)
+
+        # Update new values in plot
+        def plot(value,value2,label="Plot"):
+            value=int(value)
+            value2=int(value2)
+            val_graph.append(value)
+            val2_graph.append(value2)
+            while len(val_graph) > width_graph or len(val2_graph) > width_graph:
+                val_graph.pop(0)
+                val2_graph.pop(0)
+            show_plot(label=label)
         def drawcontours(img, lower, upper):
             """To draw contour when called and return array of landmarks of eye point"""
             for n in range(lower, upper + 1):
@@ -117,6 +128,13 @@ class Background(FloatLayout):
         # speak("Wake up sir")   #can change the alarm for DROWSINESS from here
         alarm_on1 = False  # for drowsy alarm
         alarm_on2 = False  # for yawn alarm
+        # graph values
+        color_graph=(255,0,0)
+        val_graph=[]
+        val2_graph=[]
+        width_graph=480
+        height_graph=280
+        plot_canvas_graph=np.ones((width_graph,height_graph,3))*255
         ###############################################################################
 
         while True:
@@ -160,8 +178,9 @@ class Background(FloatLayout):
                     if self.modify_threshold == 1:
                         print("You have modified eye_ear to",self.eye_ear_threshold)
                     self.threshold_changer()
-
-                self.plot(eye_ear*100)
+                x=lip_distance
+                y=eye_ear*100
+                plot(y,x)
 
                 if eye_ear < self.eye_ear_threshold:
                     count += 1
