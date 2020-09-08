@@ -1,60 +1,44 @@
 #!/usr/bin/env python3
-# import necessary modules from kivy
-from kivy.uix.floatlayout import FloatLayout
 import os
-import sys
 import cv2
-import dlib
 import time
+import dlib
+import kivy
+import random
 import playsound
 import numpy as np
 from gtts import gTTS
 from kivy.app import App
 from threading import Thread
-from kivy.config import Config
 from kivy.uix.button import Button
 from scipy.spatial import distance
 
-Config.set('graphics','width','563')
-Config.set('graphics','height','842')
-###############################################################################
-def get_ear_value(eye):
-    """To find the eye_aspect_ratio of an eye"""
-    a = distance.euclidean(eye[1], eye[5])
-    b = distance.euclidean(eye[2], eye[4])
-    c = distance.euclidean(eye[0], eye[3])
-    ear = (a + b) / (2.0 * c)
-    return ear
+red=[1,0,0,1]
+green=[0,1,0,1]
+blue=[0,0,1,1]
+purple=[1,1,1]
+class MainApp(App):
+    def build(self):
+        colors=[red,green,blue,purple]
+        button = Button(text='Start and detect',
+                        size_hint=(.5, .5),
+                        pos_hint={'center_x': .5, 'center_y': .5},
+                        background_color=random.choice(colors),)
+        button.bind(on_press=self.on_press_button)
+        return button
 
-def get_lip_distance(top_lip, bottom_lip):
-    """Returns the lip distance"""
-    top_mean = np.mean(top_lip, axis=0)
-    bottom_mean = np.mean(bottom_lip, axis=0)
-    distance = abs(top_mean[1] - bottom_mean[1])
-    return distance
+    def on_press_button(self, instance):
+        def speak(text):
+            """converts text to speech by using google text to speech module(gtts)."""
+            tts = gTTS(text=text, slow=False, lang='en')
+            file_name = "voice.mp3"
+            tts.save(file_name)
+            playsound.playsound(file_name)
 
-def alarm(path):
-    """Alarm for drowsy and yawn detection."""
-    playsound.playsound(path)
+        def alarm(path):
+            """Alarm for drowsy and yawn detection."""
+            playsound.playsound(path)
 
-def speak(text):
-    """converts text to speech by using google text to speech module(gtts)."""
-    tts = gTTS(text=text, slow=False, lang='en')
-    file_name = "voice.mp3"
-    tts.save(file_name)
-
-    playsound.playsound(file_name)
-###############################################################################
-# create a background class which inherits the boxlayout class
-class Background(FloatLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.eye_ear_threshold = 0.24  # may vary upon distance and quality of camera
-        self.yawn_threshold = 22
-        self.flag=0
-        self.modify_threshold=0
-
-    def drowsy(self):
         def drawcontours(img, lower, upper):
             """To draw contour when called and return array of landmarks of eye point"""
             for n in range(lower, upper + 1):
@@ -77,8 +61,22 @@ class Background(FloatLayout):
             # to return the eye array
             return array
 
-        ###############################################################################
+        def get_ear_value(eye):
+            """To find the eye_aspect_ratio of an eye"""
+            a = distance.euclidean(eye[1], eye[5])
+            b = distance.euclidean(eye[2], eye[4])
+            c = distance.euclidean(eye[0], eye[3])
+            ear = (a + b) / (2.0 * c)
+            return ear
 
+        def get_lip_distance(top_lip, bottom_lip):
+            """Returns the lip distance"""
+            top_mean = np.mean(top_lip, axis=0)
+            bottom_mean = np.mean(bottom_lip, axis=0)
+            distance = abs(top_mean[1] - bottom_mean[1])
+            return distance
+
+        ###############################################################################
         eye_ear = 0
         lip_distance = 0
         print("-> Loading the predictor and detector...")
@@ -91,6 +89,9 @@ class Background(FloatLayout):
         cap.set(3, 640)
         cap.set(4, 480)
         cap.set(10, 100)
+        eye_ear_threshold = 0.24  # may vary upon distance and quality of camera
+        # adjust it by trail error on line
+        yawn_threshold = 22
         count = 0
         count_threshold = 30  # for the frequency of eye closure time and can adjust it
         time.sleep(1.0)
@@ -136,12 +137,8 @@ class Background(FloatLayout):
                 lip_distance = get_lip_distance(top_lip, bottom_lip)
                 # print(lip_distance)    #trail and error method for
                 # adjusting yawn_threshold
-                if self.flag == 1:
-                    if self.modify_threshold == 1:
-                        print("You have modified eye_ear to",self.eye_ear_threshold)
-                    self.threshold_changer()
 
-                if eye_ear < self.eye_ear_threshold:
+                if eye_ear < eye_ear_threshold:
                     count += 1
                     if count >= count_threshold:
                         if not alarm_on1:
@@ -155,7 +152,7 @@ class Background(FloatLayout):
                     count = 0
                     alarm_on1 = False
 
-                if lip_distance > self.yawn_threshold:
+                if lip_distance > yawn_threshold:
                     if not alarm_on2:
                         alarm_on2 = True
                         t = Thread(target=alarm("yawn.mp3"), args=("yawn.mp3"))
@@ -166,44 +163,17 @@ class Background(FloatLayout):
                 else:
                     alarm_on2 = False
             cv2.putText(img, "EAR: {:.2f}".format(eye_ear), (500, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            cv2.putText(img, "YAWN: {:.2f}".format(lip_distance), (500, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6,(0, 0, 255), 2)
-            cv2.putText(img, "Press Q to Exit", (20, 470), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(img, "YAWN: {:.2f}".format(lip_distance), (500, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                        (0, 0, 255), 2)
+
             cv2.imshow("Cap", img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-        cv2.destroyAllWindows()
-        cap.release()
-        sys.exit(1)
 
-    def threshold_changer(self):
-        """Changes the threshold value if the detection is wrong"""
-        def empty(a):
-            """An empty function which does nothing and for on_change function
-                in  threshold window"""
-            pass
-        self.flag=1
-        self.modify_threshold=1
-        cv2.namedWindow("Thresholds")
-        cv2.resizeWindow("Thresholds",640,240)
-        cv2.createTrackbar("Eye ear(0.01)","Thresholds",24,50,empty)
-        cv2.createTrackbar("Yawn threshold","Thresholds",22,50,empty)
-        self.eye_ear_threshold = cv2.getTrackbarPos("Eye ear(0.01)","Thresholds")
-        self.eye_ear_threshold/=100  # may vary upon distance and quality of camera
-        # adjust it by trail error on line
-        self.yawn_threshold = cv2.getTrackbarPos("Yawn threshold","Thresholds")
-        cv2.waitKey(1)
-
-    def end(self):
-        """Exits the code if choosen to exit"""
-        print("THANK YOU!")
-        sys.exit(1)
-
-# Create App class with name of your app
-class AndroidApp(App):
-
-    # return the Window having the background template.
-    def build(self):
-        return Background()
+        #print('You pressed the button!')
 
 if __name__ == '__main__':
-    AndroidApp().run()
+    app = MainApp()
+    app.run()
+    cv2.destroyAllWindows()
+    cap.release()
