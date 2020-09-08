@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # import necessary modules from kivy
-from kivy.uix.floatlayout import FloatLayout
 import os
 import sys
 import cv2
@@ -14,6 +13,7 @@ from threading import Thread
 from kivy.config import Config
 from kivy.uix.button import Button
 from scipy.spatial import distance
+from kivy.uix.floatlayout import FloatLayout
 
 Config.set('graphics','width','563')
 Config.set('graphics','height','842')
@@ -53,6 +53,26 @@ class Background(FloatLayout):
         self.yawn_threshold = 22
         self.flag=0
         self.modify_threshold=0
+        self.color=(255,0,0)
+        self.val=[]
+        self.plot_canvas=np.ones((512,512,3))*255
+
+    # Update new values in plot
+    def plot(self, val, label = "plot"):
+    	self.val.append(int(val))
+    	while len(self.val) > self.width:
+    		self.val.pop(0)
+
+    	self.show_plot(label)
+
+    # Show plot using opencv imshow
+    def show_plot(self,label):
+    	self.plot_canvas = np.ones((self.height, self.width, 3))*255
+    	cv2.line(self.plot_canvas,(0,int(self.height/2)),(self.width,int(self.height/2)),(0,255,0),1)
+    	for i in range(len(self.val)-1):
+    		cv2.line(self.plot_canvas,(i, int(self.height/2)-self.val[i]),(i+1,int(self.height/2)-self.val[i+1]),self.color,1)
+    	cv2.imshow(label,self.plot_canvas)
+    	cv2.waitKey(10)
 
     def drowsy(self):
         def drawcontours(img, lower, upper):
@@ -141,6 +161,8 @@ class Background(FloatLayout):
                         print("You have modified eye_ear to",self.eye_ear_threshold)
                     self.threshold_changer()
 
+                self.plot(eye_ear*100)
+
                 if eye_ear < self.eye_ear_threshold:
                     count += 1
                     if count >= count_threshold:
@@ -167,7 +189,7 @@ class Background(FloatLayout):
                     alarm_on2 = False
             cv2.putText(img, "EAR: {:.2f}".format(eye_ear), (500, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
             cv2.putText(img, "YAWN: {:.2f}".format(lip_distance), (500, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6,(0, 0, 255), 2)
-            cv2.putText(img, "Press Q to Exit", (20, 470), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(img, "Press and Hold Q to Exit", (20, 470), cv2.FONT_HERSHEY_DUPLEX, 0.7, (0, 255, 0), 2)
             cv2.imshow("Cap", img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
